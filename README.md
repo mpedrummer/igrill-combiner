@@ -12,8 +12,9 @@ Once installed, use the following steps:
 
 1. Create a new folder
 2. Download all exported files from your cook to the new folder
-3. `php /path/to/combiner/combiner.php > output.csv`
-4. Unless you want to get fancy, that's it!
+3. `cd your/new/folder`
+4. `php /path/to/combiner/combiner.php > output.csv`
+5. Unless you want to get fancy, that's it!
 
 ## You Want to Get Fancy
 
