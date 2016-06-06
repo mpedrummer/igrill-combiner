@@ -16,8 +16,11 @@ if( isset( $argv[2] ) ) {
   $date_format = 'H:i';
 }
 
-$sorted       = array();
+$unsorted     = array();
 $found_probes = array();
+
+$lowest  = 99999999999999;
+$highest = 0;
 
 foreach( glob( './iGrill*' ) as $file ) {
   $fh = fopen( $file, 'r' );
@@ -45,23 +48,48 @@ foreach( glob( './iGrill*' ) as $file ) {
 
     $period = intval( floor( $time / $seconds_period ) * $seconds_period );
 
-    if( isset( $sorted[ $period ][ $probe ] ) === false ) {
-      // Initialize to prevent index notices
-      $sorted[ $period ][ $probe ] = array( 'sum' => 0, 'count' => 0 );
+    if( $period < $lowest ) {
+      $lowest = $period;
+    } else if( $period > $highest ) {
+      $highest = $period;
     }
 
-    $sorted[ $period ][ $probe ][ 'sum' ] += $temp;
-    $sorted[ $period ][ $probe ][ 'count' ]++;
+    if( isset( $unsorted[ $period ][ $probe ] ) === false ) {
+      // Initialize to prevent index notices
+      $unsorted[ $period ][ $probe ] = array( 'sum' => 0, 'count' => 0 );
+    }
+
+    $unsorted[ $period ][ $probe ][ 'sum' ] += $temp;
+    $unsorted[ $period ][ $probe ][ 'count' ]++;
   }
 }
 
-foreach( $sorted as $period => $probes ) {
+foreach( $unsorted as $period => $probes ) {
   foreach( $probes as $probe => $data ) {
-    $sorted[ $period ][ $probe ]['avg'] = $data['sum'] / $data['count'];
+    $unsorted[ $period ][ $probe ]['avg'] = $data['sum'] / $data['count'];
   }
 }
 
-ksort( $sorted );
+ksort( $unsorted );
+
+// It's sorted now.
+$sorted = $unsorted;
+
+echo date( 'Y-m-d H:i', $lowest ) . "\n";
+echo date( 'Y-m-d H:i', $highest ) . "\n";
+
+echo "lowest $lowest; highest $highest; $seconds_period\n\n";
+
+
+for( $period = $lowest; $period <= $highest; $period += $seconds_period ) {
+  echo date( "Y-m-d H:i", $period ) . "\n";
+
+  if( isset( $sorted[ $period ] ) === false ) {
+    $sorted[ $period ] = array();
+  }
+}
+
+ksort( $sorted ); // Sort it again
 ksort( $found_probes );
 
 $found_probes = array_keys( $found_probes );
