@@ -100,7 +100,7 @@ $header = array_merge( $header, $found_probes );
 echo implode( ',', $header ) . "\n";
 
 foreach( $sorted as $period => $probes ) {
-  $data = [];
+  $data   = array();
   $data[] = date( $date_format, $period );
 
   foreach( $found_probes as $probe ) {
