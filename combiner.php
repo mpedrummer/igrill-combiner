@@ -75,15 +75,8 @@ ksort( $unsorted );
 // It's sorted now.
 $sorted = $unsorted;
 
-echo date( 'Y-m-d H:i', $lowest ) . "\n";
-echo date( 'Y-m-d H:i', $highest ) . "\n";
-
-echo "lowest $lowest; highest $highest; $seconds_period\n\n";
-
 
 for( $period = $lowest; $period <= $highest; $period += $seconds_period ) {
-  echo date( "Y-m-d H:i", $period ) . "\n";
-
   if( isset( $sorted[ $period ] ) === false ) {
     $sorted[ $period ] = array();
   }
