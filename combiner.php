@@ -2,25 +2,20 @@
 
 date_default_timezone_set('America/New_York');
 
+$Registry = new Registry();
+
 // The data is combined into an average per probe per period.  This defines the length
 // of the period.
 if( isset( $argv[1] ) && intval( $argv[1] ) > 0 ) {
-  $seconds_period = intval( $argv[1] );
-} else {
-  $seconds_period = 120;
+  $Registry->seconds_period = intval( $argv[1] );
 }
 
 if( isset( $argv[2] ) ) {
-  $date_format = $argv[2];
-} else {
-  $date_format = 'H:i';
+  $Registry->date_format = $argv[2];
 }
 
 $unsorted     = array();
 $found_probes = array();
-
-$lowest  = 99999999999999;
-$highest = 0;
 
 foreach( glob( './iGrill*' ) as $file ) {
   $fh = fopen( $file, 'r' );
@@ -46,12 +41,12 @@ foreach( glob( './iGrill*' ) as $file ) {
 
     $found_probes[ $probe ] = 1;
 
-    $period = intval( floor( $time / $seconds_period ) * $seconds_period );
+    $period = intval( floor( $time / $Registry->seconds_period ) * $Registry->seconds_period );
 
-    if( $period < $lowest ) {
-      $lowest = $period;
-    } else if( $period > $highest ) {
-      $highest = $period;
+    if( $period < $Registry->lowest ) {
+      $Registry->lowest = $period;
+    } else if( $period > $Registry->highest ) {
+      $Registry->highest = $period;
     }
 
     if( isset( $unsorted[ $period ][ $probe ] ) === false ) {
@@ -76,7 +71,7 @@ ksort( $unsorted );
 $sorted = $unsorted;
 
 
-for( $period = $lowest; $period <= $highest; $period += $seconds_period ) {
+for( $period = $Registry->lowest; $period <= $Registry->highest; $period += $Registry->seconds_period ) {
   if( isset( $sorted[ $period ] ) === false ) {
     $sorted[ $period ] = array();
   }
@@ -92,17 +87,67 @@ $header = array_merge( $header, $found_probes );
 
 echo implode( ',', $header ) . "\n";
 
+$probe_count = count( $found_probes );
+
 foreach( $sorted as $period => $probes ) {
-  $data   = array();
-  $data[] = date( $date_format, $period );
+  $i = 0;
+
+  $data     = array();
+  $data[$i] = date( $Registry->date_format, $period );
 
   foreach( $found_probes as $probe ) {
+    ++$i;
     if( isset( $probes[ $probe ] ) ) {
-      $data[] = number_format( $probes[ $probe ]['avg'], 1 );
+      $period_avg            = number_format( $probes[ $probe ]['avg'], 1 );
+      $Registry->last_known[ $probe ]  = $period_avg;
+      $data[$i]              = $period_avg;
+      $data[$i+$probe_count] = $period_avg;
     } else {
-      $data[] = '';
+      $data[$i] = '';
+      $data[$i + $probe_count] = getInterpolatedData( $sorted,
+                                                      $period,
+                                                      $probe,
+                                                      $Registry );
     }
   }
+  ksort( $data );
 
   echo implode( ',', $data ) . "\n";
+}
+
+/**
+ * Calculates missing data points.
+ *
+ * @param array    $array
+ * @param integer  $period
+ * @param string   $probe
+ * @param Registry $Registry
+ * @return string
+ */
+function getInterpolatedData( &$array,
+                              $period,
+                              $probe,
+                              Registry $Registry ) {
+  $blanks         = 2; // 1, plus 1 more to the next possible data
+  $last_known     = floatval( $Registry->last_known[ $probe ] );
+  $seconds_period = $Registry->seconds_period;
+
+  while( $period <= $Registry->highest
+    && isset( $array[ $period + $seconds_period ][$probe]['avg'] ) === false ) {
+    $period += $seconds_period;
+    ++$blanks;
+  }
+
+  $next_valid = $array[ $period + $seconds_period ][ $probe ]['avg'];
+  $gap        = $next_valid - $last_known;
+
+  return number_format( $last_known + ( $gap / $blanks ), 1 );
+}
+
+class Registry {
+  public $lowest         = 9999999999999;
+  public $highest        = 0;
+  public $last_known     = array();
+  public $seconds_period = 120;
+  public $date_format    = 'H:i';
 }
