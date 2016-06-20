@@ -128,7 +128,7 @@ function getInterpolatedData( &$array,
                               $period,
                               $probe,
                               Registry $Registry ) {
-  $blanks         = 2; // 1, plus 1 more to the next possible data
+  $blanks         = 2;
   $last_known     = floatval( $Registry->last_known[ $probe ] );
   $seconds_period = $Registry->seconds_period;
 
@@ -146,7 +146,12 @@ function getInterpolatedData( &$array,
     $gap = 0;
   }
 
-  return number_format( $last_known + ( $gap / $blanks ), 1 );
+  $spacer = $gap / $blanks;
+
+  $new_avg = $last_known + $spacer;
+  $Registry->last_known[ $probe ] = $new_avg;
+
+  return number_format( $new_avg, 1 );
 }
 
 class Registry {
