@@ -138,8 +138,13 @@ function getInterpolatedData( &$array,
     ++$blanks;
   }
 
-  $next_valid = $array[ $period + $seconds_period ][ $probe ]['avg'];
-  $gap        = $next_valid - $last_known;
+  if( isset( $array[ $period + $seconds_period ] ) &&
+    isset( $array[ $period + $seconds_period ][ $probe ] ) ) {
+    $next_valid = $array[ $period + $seconds_period ][ $probe ]['avg'];
+    $gap        = $next_valid - $last_known;
+  } else {
+    $gap = 0;
+  }
 
   return number_format( $last_known + ( $gap / $blanks ), 1 );
 }
